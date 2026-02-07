@@ -185,7 +185,7 @@
             <h3>Write Medical Report</h3>
             <p id="report-patient-name" style="color:var(--text-muted); margin-bottom:20px;">Patient: --</p>
 
-            <form id="report-form" onsubmit="saveReport(event)">
+            <form id="report-form" onsubmit="submitDoctorReport(event)">
                 <input type="hidden" id="report-apt-id">
                 <div class="form-group">
                     <label>Symptoms</label>
@@ -546,11 +546,10 @@
             document.getElementById('report-modal').classList.remove('hidden');
         };
 
-        async function saveReport(e) {
+        async function submitDoctorReport(e) {
             e.preventDefault();
 
             const formData = new FormData();
-            formData.append('appointment_id', document.getElementById('report-apt-id').value);
             formData.append('appointment_id', document.getElementById('report-apt-id').value);
             formData.append('diagnosis', document.getElementById('report-diagnosis').value);
             formData.append('symptoms', document.getElementById('report-symptoms').value);
@@ -563,14 +562,24 @@
                 formData.append('file', fileInput.files[0]);
             }
 
-            await fetch(`${API_URL}/doctor/report`, {
-                method: 'POST',
-                body: formData // No Content-Type header (browser sets it for FormData)
-            });
+            try {
+                const res = await fetch(`${API_URL}/doctor/report`, {
+                    method: 'POST',
+                    body: formData // Browser sets Content-Type to multipart
+                });
 
-            showToast('Report Saved!', 'success');
-            closeModal('report-modal');
-            loadAppointments();
+                if (res.ok) {
+                    showToast('Report Saved!', 'success');
+                    closeModal('report-modal');
+                    loadAppointments('today'); // Refresh
+                } else {
+                    const err = await res.json();
+                    showToast('Error: ' + (err.error || 'Failed'), 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network Error', 'error');
+            }
         }
 
         init();
