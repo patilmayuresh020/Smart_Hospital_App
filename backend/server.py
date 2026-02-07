@@ -443,3 +443,6 @@ def get_messages():
 
 
 
+
+# Run DB Init on Import (for Gunicorn/Render)
+init_db_if_needed()
