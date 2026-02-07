@@ -255,7 +255,15 @@ def get_appointments():
         return jsonify([])
     
     conn = get_db_connection()
-    appointments = conn.execute('SELECT * FROM appointments WHERE user_mobile = ? ORDER BY id DESC', (mobile,)).fetchall()
+    # Join with reports to get follow_up_date
+    query = '''
+        SELECT a.*, r.follow_up_date 
+        FROM appointments a
+        LEFT JOIN reports r ON a.report_id = 'generated' AND a.id = r.appointment_id
+        WHERE a.user_mobile = ? 
+        ORDER BY a.id DESC
+    '''
+    appointments = conn.execute(query, (mobile,)).fetchall()
     conn.close()
     
     return jsonify([dict(row) for row in appointments])

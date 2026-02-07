@@ -445,6 +445,9 @@ function renderDashboardContent(view) {
                             ${apt.status === 'Completed' ?
                                 `<button class="nav-btn" style="border:1px solid #ccc; color:#0056b3;" onclick="window.viewReport('${apt.id}')">📄 View Report</button>` :
                                 ''}
+                             ${apt.follow_up_date ?
+                                `<br><span style="font-size:0.85rem; color:#d35400; background:#fff3cd; padding:2px 6px; border-radius:4px; margin-top:5px; display:inline-block;">📅 Follow-up: ${new Date(apt.follow_up_date).toLocaleDateString()}</span>`
+                                : ''}
                         </div>
                     `;
                         listDiv.appendChild(item);
