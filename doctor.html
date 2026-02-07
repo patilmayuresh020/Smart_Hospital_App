@@ -120,33 +120,59 @@
             </div>
 
             <!-- APPOINTMENTS LIST -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2>My Appointments</h2>
-                <div style="display:flex; gap:10px;">
-                    <button class="nav-btn" onclick="toggleView('messages')"
-                        style="border:1px solid #ccc; background: white; color: #333;">📩 Messages</button>
-                    <button class="btn-primary" onclick="toggleView('appointments'); loadAppointments('today')"
-                        style="background:var(--accent-green);">📅 Today's Only</button>
-                    <button class="nav-btn" onclick="loadAppointments('all')" style="border:1px solid #ccc;">Show
-                        All</button>
+            <!-- APPOINTMENTS VIEW -->
+            <div id="appointments-view">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>My Appointments</h2>
+                    <div style="display:flex; gap:10px;">
+                        <button class="nav-btn" onclick="toggleView('messages')"
+                            style="border:1px solid #ccc; background: white; color: #333;">📩 Messages</button>
+                        <button class="btn-primary" onclick="loadAppointments('today')"
+                            style="background:var(--accent-green);">📅 Today's Only</button>
+                        <button class="nav-btn" onclick="loadAppointments('all')" style="border:1px solid #ccc;">Show
+                            All</button>
+                    </div>
+                </div>
+
+                <div class="booking-card" style="max-width:100%;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:var(--bg-light); text-align:left;">
+                                <th style="padding:15px;">ID</th>
+                                <th style="padding:15px;">Patient</th>
+                                <th style="padding:15px;">Date</th>
+                                <th style="padding:15px;">Status</th>
+                                <th style="padding:15px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="doc-apt-list">
+                            <!-- Rows loaded here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="booking-card" style="max-width:100%;">
-                <table style="width:100%; border-collapse:collapse;">
-                    <thead>
-                        <tr style="background:var(--bg-light); text-align:left;">
-                            <th style="padding:15px;">ID</th>
-                            <th style="padding:15px;">Patient</th>
-                            <th style="padding:15px;">Date</th>
-                            <th style="padding:15px;">Status</th>
-                            <th style="padding:15px;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="doc-apt-list">
-                        <!-- Rows loaded here -->
-                    </tbody>
-                </table>
+            <!-- MESSAGES VIEW -->
+            <div id="messages-view" class="hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2>Patient Messages</h2>
+                    <button class="nav-btn" onclick="toggleView('appointments')">Back to Appointments</button>
+                </div>
+                <div class="booking-card" style="max-width:100%;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:var(--bg-light); text-align:left;">
+                                <th style="padding:15px;">Date</th>
+                                <th style="padding:15px;">Name</th>
+                                <th style="padding:15px;">Subject</th>
+                                <th style="padding:15px;">Message</th>
+                            </tr>
+                        </thead>
+                        <tbody id="msg-list">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -210,6 +236,49 @@
     <script>
         const API_URL = '/api';
         let currentDoc = null;
+
+        function toggleView(view) {
+            if (view === 'messages') {
+                document.getElementById('appointments-view').classList.add('hidden');
+                document.getElementById('messages-view').classList.remove('hidden');
+                loadMessages();
+            } else {
+                document.getElementById('appointments-view').classList.remove('hidden');
+                document.getElementById('messages-view').classList.add('hidden');
+            }
+        }
+
+        async function loadMessages() {
+            const list = document.getElementById('msg-list');
+            list.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+
+            try {
+                const res = await fetch(`${API_URL}/doctor/messages`);
+                const msgs = await res.json();
+
+                list.innerHTML = '';
+                if (msgs.length === 0) {
+                    list.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#666;">No messages found.</td></tr>';
+                    return;
+                }
+
+                msgs.forEach(m => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #eee';
+                    tr.innerHTML = `
+                        <td style="padding:15px; color:#666;">${new Date(m.created_at).toLocaleDateString()}</td>
+                        <td style="padding:15px; font-weight:600;">${m.name}</td>
+                        <td style="padding:15px;">${m.subject}</td>
+                        <td style="padding:15px; color:#444;">${m.message}</td>
+                    `;
+                    list.appendChild(tr);
+                });
+
+            } catch (e) {
+                console.error(e);
+                list.innerHTML = '<tr><td colspan="4" style="color:red;">Failed to load messages</td></tr>';
+            }
+        }
 
         function showToast(msg, type = 'info') {
             const container = document.getElementById('toast-container');

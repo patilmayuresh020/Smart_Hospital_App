@@ -531,7 +531,9 @@ function confirmBooking() {
         body: JSON.stringify({
             dept: dept,
             date: new Date().toLocaleDateString(),
-            mobile: appState.user.mobile
+            mobile: appState.user.mobile,
+            patient_name: appState.user.name,
+            patient_age: appState.user.age
         })
     })
         .then(res => res.json())
