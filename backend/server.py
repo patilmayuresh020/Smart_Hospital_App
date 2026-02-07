@@ -131,12 +131,44 @@ def create_schema(conn):
             )
         conn.commit()
 
+def run_migrations(conn):
+    print("Checking for required migrations...")
+    try:
+        # Check reports table for new columns
+        cursor = conn.execute("PRAGMA table_info(reports)")
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        if 'symptoms' not in columns:
+            print("Migrating: Adding 'symptoms' to reports request")
+            conn.execute("ALTER TABLE reports ADD COLUMN symptoms TEXT")
+            
+        if 'follow_up_date' not in columns:
+            print("Migrating: Adding 'follow_up_date' to reports request")
+            conn.execute("ALTER TABLE reports ADD COLUMN follow_up_date TEXT")
+            
+        # Check messages table
+        conn.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            subject TEXT,
+            message TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        print("Migrations check completed.")
+        
+    except Exception as e:
+        print(f"Migration Error: {e}")
+
 def init_db_if_needed():
     # Ensure DB exists
     conn = sqlite3.connect(DB_FILE)
     try:
         # Check if users table exists
         conn.execute("SELECT 1 FROM users LIMIT 1")
+        # Run migrations for existing DBs
+        run_migrations(conn)
     except sqlite3.OperationalError:
         create_schema(conn)
     finally:
