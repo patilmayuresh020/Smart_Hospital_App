@@ -242,7 +242,7 @@ def get_patient_history(mobile):
     conn = get_db_connection()
     # Fetch all appointments for this mobile that are completed
     query = '''
-        SELECT a.*, r.diagnosis, r.medicines 
+        SELECT a.*, r.diagnosis, r.medicines, r.symptoms, r.follow_up_date 
         FROM appointments a
         LEFT JOIN reports r ON a.report_id = 'generated' AND a.id = r.appointment_id
         WHERE a.user_mobile = ?
@@ -280,11 +280,11 @@ def save_report():
             conn.execute('UPDATE reports SET diagnosis = ?, medicines = ?, notes = ?, file_path = ? WHERE appointment_id = ?',
                         (data['diagnosis'], data['medicines'], data['notes'], file_path, apt_id))
         else:
-            conn.execute('UPDATE reports SET diagnosis = ?, medicines = ?, notes = ? WHERE appointment_id = ?',
-                        (data['diagnosis'], data['medicines'], data['notes'], apt_id))
+            conn.execute('UPDATE reports SET diagnosis = ?, medicines = ?, notes = ?, symptoms = ?, follow_up_date = ? WHERE appointment_id = ?',
+                        (data['diagnosis'], data['medicines'], data['notes'], data.get('symptoms'), data.get('follow_up_date'), apt_id))
     else:
-        conn.execute('INSERT INTO reports (appointment_id, diagnosis, medicines, notes, file_path) VALUES (?, ?, ?, ?, ?)',
-                     (apt_id, data['diagnosis'], data['medicines'], data['notes'], file_path))
+        conn.execute('INSERT INTO reports (appointment_id, diagnosis, medicines, notes, file_path, symptoms, follow_up_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                     (apt_id, data['diagnosis'], data['medicines'], data['notes'], file_path, data.get('symptoms'), data.get('follow_up_date')))
         
         # Update Appointment status
         conn.execute("UPDATE appointments SET status = 'Completed', report_id = ? WHERE id = ?", 
@@ -317,6 +317,14 @@ def delete_appointment(apt_id):
 def confirm_appointment(apt_id):
     conn = get_db_connection()
     conn.execute("UPDATE appointments SET status = 'Confirmed' WHERE id = ?", (apt_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "success"})
+
+@app.route('/api/appointments/<int:apt_id>/cancel', methods=['POST'])
+def cancel_appointment(apt_id):
+    conn = get_db_connection()
+    conn.execute("UPDATE appointments SET status = 'Cancelled' WHERE id = ?", (apt_id,))
     conn.commit()
     conn.close()
     return jsonify({"status": "success"})
@@ -364,6 +372,25 @@ def update_doctor_status():
     conn.commit()
     conn.close()
     return jsonify({"message": "Status Updated"})
+
+
+@app.route('/api/contact', methods=['POST'])
+def save_contact_message():
+    data = request.json
+    conn = get_db_connection()
+    conn.execute('INSERT INTO messages (name, subject, message) VALUES (?, ?, ?)',
+                 (data.get('name', 'Anonymous'), data['subject'], data['message']))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "success"})
+
+
+@app.route('/api/doctor/messages', methods=['GET'])
+def get_messages():
+    conn = get_db_connection()
+    msgs = conn.execute('SELECT * FROM messages ORDER BY created_at DESC').fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in msgs])
 
 
 # CONFLICTING ROUTE REMOVED

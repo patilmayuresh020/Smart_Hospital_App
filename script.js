@@ -439,7 +439,7 @@ function renderDashboardContent(view) {
                         <div>
                             <h4 style="margin-bottom:5px;">${apt.dept}</h4>
                             <div style="color:#666; font-size:0.9rem;">Date: ${apt.date} | ID: #${apt.id}</div>
-                            <div style="margin-top:5px; font-weight:500; color:${apt.status === 'Completed' ? 'green' : '#0056b3'}">${apt.status}</div>
+                            <div style="margin-top:5px; font-weight:500; color:${apt.status === 'Completed' ? 'green' : (apt.status === 'Cancelled' ? 'red' : '#0056b3')}">${apt.status}</div>
                         </div>
                          <div>
                             ${apt.status === 'Completed' ?
@@ -559,10 +559,15 @@ window.viewReport = function (reportId) {
         })
         .then(report => {
             // Fetch appointment details to get doctor name, etc if not in report
-            // Actually report table has minimalist data. 
-            // Ideally we should join data in backend, but for now let's display what we have.
-
-            renderReportView(container, report);
+            // Also need dept for follow up booking
+            return fetch(`/api/appointments`).then(res => res.json()).then(apts => {
+                const apt = apts.find(a => a.id == report.appointment_id); // Find specific apt if possible, simplified here
+                // Actually the report doesn't have dept info directly unless we join. 
+                // Let's rely on the frontend knowing who they booked with or just pass general.
+                // For now, let's just render.
+                report.dept = apt ? apt.dept : '';
+                renderReportView(container, report);
+            });
         })
         .catch(err => {
             container.innerHTML = `<p class="text-red">⚠ Document not ready or not found. <br><small>${err.message}</small></p>
@@ -604,6 +609,7 @@ function renderReportView(container, report) {
             <div style="margin-bottom:30px;">
                 <h4 style="background:#f8f9fa; padding:10px; border-left:4px solid var(--primary-blue); margin-bottom:15px;">DIAGNOSIS</h4>
                 <p style="font-size:1.1rem; line-height:1.6;">${report.diagnosis}</p>
+                ${report.symptoms ? `<p style="color:#666; font-size:0.9rem; margin-top:5px;"><strong>Symptoms:</strong> ${report.symptoms}</p>` : ''}
             </div>
 
             <div style="margin-bottom:30px;">
@@ -614,6 +620,14 @@ function renderReportView(container, report) {
             <div style="margin-bottom:40px;">
                 <h4 style="background:#f8f9fa; padding:10px; border-left:4px solid #f1c40f; margin-bottom:15px;">DOCTOR'S NOTES</h4>
                 <p style="color:#555;">${report.notes || 'None'}</p>
+                ${report.follow_up_date ? `
+                    <div style="margin-top:20px; padding:15px; background:#e8f8f5; border-radius:5px; border:1px solid #2ecc71;">
+                        <strong style="color:#27ae60;">📅 Follow-up Required: ${new Date(report.follow_up_date).toDateString()}</strong>
+                        <div style="margin-top:10px;">
+                            <button class="btn-primary" onclick="window.startBookingWith('${report.dept || 'General Physician'}')">Book Follow-up Now</button>
+                        </div>
+                    </div>`
+            : ''}
             </div>
 
             <div style="border-top:1px solid #eee; padding-top:30px; text-align:center; display:flex; justify-content:center; gap:15px;" class="no-print">
@@ -661,20 +675,38 @@ function renderAppointmentList() {
     }
 }
 
+// 6.b Handle Contact
 window.handleContactSubmit = function (e) {
     e.preventDefault();
     const btn = e.target.querySelector('button');
     const originalText = btn.textContent;
 
+    // Get Data
+    const subject = e.target.querySelector('select').value;
+    const message = e.target.querySelector('textarea').value;
+    const name = appState.user ? appState.user.name : 'Guest';
+
     btn.textContent = "Sending...";
     btn.disabled = true;
 
-    setTimeout(() => {
-        showToast("Message sent successfully!", 'success');
-        e.target.reset();
-        btn.textContent = originalText;
-        btn.disabled = false;
-    }, 1500);
+    fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, subject, message })
+    })
+        .then(res => res.json())
+        .then(data => {
+            showToast("Message sent successfully!", 'success');
+            e.target.reset();
+            btn.textContent = originalText;
+            btn.disabled = false;
+        })
+        .catch(err => {
+            console.error(err);
+            showToast("Failed to send message.", 'error');
+            btn.textContent = originalText;
+            btn.disabled = false;
+        });
 };
 
 // --- NEW FEATURES ---

@@ -123,7 +123,9 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2>My Appointments</h2>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn-primary" onclick="loadAppointments('today')"
+                    <button class="nav-btn" onclick="toggleView('messages')"
+                        style="border:1px solid #ccc; background: white; color: #333;">📩 Messages</button>
+                    <button class="btn-primary" onclick="toggleView('appointments'); loadAppointments('today')"
                         style="background:var(--accent-green);">📅 Today's Only</button>
                     <button class="nav-btn" onclick="loadAppointments('all')" style="border:1px solid #ccc;">Show
                         All</button>
@@ -160,6 +162,10 @@
             <form id="report-form" onsubmit="saveReport(event)">
                 <input type="hidden" id="report-apt-id">
                 <div class="form-group">
+                    <label>Symptoms</label>
+                    <input type="text" id="report-symptoms" placeholder="e.g. Fever, Cough, Headache">
+                </div>
+                <div class="form-group">
                     <label>Diagnosis</label>
                     <input type="text" id="report-diagnosis" required placeholder="Viral Fever, etc.">
                 </div>
@@ -174,9 +180,11 @@
                 </div>
                 <div class="form-group">
                     <label>Doctor's Notes</label>
-                    <textarea id="report-notes" rows="2"></textarea>
-                </div>
-                <button type="submit" class="btn-primary">Save & Generate Report</button>
+                    <div class="form-group">
+                        <label>Follow-up Date</label>
+                        <input type="date" id="report-followup" class="form-select">
+                    </div>
+                    <button type="submit" class="btn-primary">Save & Generate Report</button>
             </form>
         </div>
     </div>
@@ -389,6 +397,13 @@
             loadAppointments();
         }
 
+        async function cancelAppointment(id) {
+            if (!confirm("Are you sure you want to cancel this appointment? It will remain in history.")) return;
+            await fetch(`${API_URL}/appointments/${id}/cancel`, { method: 'POST' });
+            showToast('Appointment Cancelled', 'info');
+            loadAppointments();
+        }
+
         async function viewHistory(mobile, name) {
             if (!mobile || mobile === 'undefined') return showToast('No history available for guest users.', 'error');
 
@@ -455,6 +470,10 @@
             document.getElementById('report-apt-id').value = aptId;
             document.getElementById('report-patient-name').textContent = `Patient: ${patientName}`;
             document.getElementById('report-form').reset();
+            document.getElementById('report-apt-id').value = aptId;
+            document.getElementById('report-patient-name').textContent = `Patient: ${patientName}`;
+            document.getElementById('report-form').reset();
+            // Fetch existing report if any to prefill? Maybe later.
             document.getElementById('report-modal').classList.remove('hidden');
         };
 
@@ -463,9 +482,12 @@
 
             const formData = new FormData();
             formData.append('appointment_id', document.getElementById('report-apt-id').value);
+            formData.append('appointment_id', document.getElementById('report-apt-id').value);
             formData.append('diagnosis', document.getElementById('report-diagnosis').value);
+            formData.append('symptoms', document.getElementById('report-symptoms').value);
             formData.append('medicines', document.getElementById('report-meds').value);
             formData.append('notes', document.getElementById('report-notes').value);
+            formData.append('follow_up_date', document.getElementById('report-followup').value);
 
             const fileInput = document.getElementById('report-file');
             if (fileInput.files.length > 0) {
