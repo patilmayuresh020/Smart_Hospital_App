@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Connection Diagnostic</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #333;
+            color: #fff;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .success {
+            background: #28a745;
+            color: white;
+        }
+
+        .error {
+            background: #dc3545;
+            color: white;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>System Diagnostic Tool</h1>
+    <p>Click the button below to test the connection to the Hospital Server.</p>
+    <button onclick="runTest()">Run Connectivity Test</button>
+
+    <div id="logs" style="margin-top:20px;"></div>
+
+    <script>
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = 'status ' + type;
+            div.innerHTML = msg;
+            document.getElementById('logs').appendChild(div);
+        }
+
+        async function runTest() {
+            document.getElementById('logs').innerHTML = '';
+            log("Attempting to connect to http://localhost:5000/api/doctors...", 'info');
+
+            try {
+                const start = Date.now();
+                const res = await fetch('http://localhost:5000/api/doctors');
+                const time = Date.now() - start;
+
+                if (res.ok) {
+                    const data = await res.json();
+                    log(`✅ SUCCESS! Connected in ${time}ms.`, 'success');
+                    log(`Found ${data.length} doctors available.`, 'success');
+                    log(`Raw Data: ${JSON.stringify(data).slice(0, 100)}...`, 'info');
+                } else {
+                    log(`⚠️ Server responded with Status: ${res.status}`, 'error');
+                }
+            } catch (e) {
+                log(`❌ CONNECTION FAILED: ${e.message}`, 'error');
+                log(`Possible Causes:<br>1. Server is not running.<br>2. Browser blocked 'localhost' access.<br>3. Firewall issue.`, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>
