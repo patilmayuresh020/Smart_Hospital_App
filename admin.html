@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Patil Hospital | Admin Portal</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- admin.css removed to match Patient/Doctor theme -->
+
+    <!-- Boxicons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Admin Background Image */
+        /* Admin Background - Clean & Attractive */
+        /* Admin Background - Clean & Attractive (Only when not logged in) */
+        body.not-logged-in {
+            /* High Quality Hospital Background with Overlay */
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://plus.unsplash.com/premium_photo-1661281397737-9b5d75b52beb?q=80&w=2069&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Default Body when Logged In (Dashboard Mode) */
+        body {
+            background-color: var(--bg-light);
+            /* Standard Dashboard Background */
+            display: block;
+            /* Reset Flex */
+        }
+
+        /* Hide content by default if not logged in */
+        body.not-logged-in #sidebar,
+        body.not-logged-in #content {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body class="not-logged-in">
+
+    <!-- Sidebar -->
+    <section id="sidebar">
+        <a href="#" class="brand">
+            <i class='bx bxs-building-house'></i>
+            <span class="text">Patil Hospital</span>
+        </a>
+        <ul class="side-menu top">
+            <li class="active">
+                <a href="#" onclick="showSection('dashboard')">
+                    <i class='bx bxs-dashboard'></i>
+                    <span class="text">Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" onclick="showSection('doctors')">
+                    <i class='bx bxs-group'></i>
+                    <span class="text">Doctors</span>
+                </a>
+            </li>
+            <li>
+                <a href="javascript:void(0);" onclick="showSection('patients')">
+                    <i class='bx bxs-user-detail'></i>
+                    <span class="text">Patients</span>
+                </a>
+            </li>
+            <li>
+                <a href="javascript:void(0);" onclick="showSection('appointments')">
+                    <i class='bx bxs-calendar'></i>
+                    <span class="text">Appointments</span>
+                </a>
+            </li>
+        </ul>
+        <ul class="side-menu">
+            <li>
+                <a href="#" class="logout">
+                    <i class='bx bxs-log-out-circle'></i>
+                    <span class="text">Logout</span>
+                </a>
+            </li>
+        </ul>
+    </section>
+    <!-- Sidebar -->
+
+    <!-- Content -->
+    <section id="content">
+        <!-- Navbar -->
+        <nav>
+            <i class='bx bx-menu'></i>
+            <form action="#">
+                <div class="form-input">
+                    <!-- Search could be implemented later -->
+                </div>
+            </form>
+            <input type="checkbox" id="switch-mode" hidden>
+            <label for="switch-mode" class="switch-mode"></label>
+
+            <a href="#" class="profile">
+                <img src="https://ui-avatars.com/api/?name=Mayuresh&background=3C91E6&color=fff">
+                <div class="profile-info">
+                    <h4>Mayuresh</h4>
+                    <p>Super Admin</p>
+                </div>
+            </a>
+        </nav>
+        <!-- Navbar -->
+
+        <!-- MAIN -->
+        <main>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="admin-section active">
+                <!-- Dashboard Header Removed -->
+                <div style="margin-bottom: 20px;"></div>
+
+
+                <ul class="box-info">
+                    <li>
+                        <i class='bx bxs-calendar-check'></i>
+                        <span class="text">
+                            <h3 id="cnt-appts">0</h3>
+                            <p>Total Appointments</p>
+                        </span>
+                    </li>
+                    <li onclick="showSection('patients')" style="cursor: pointer;">
+                        <i class='bx bxs-group'></i>
+                        <span class="text">
+                            <h3 id="cnt-patients">0</h3>
+                            <p>Patients</p>
+                        </span>
+                    </li>
+                    <li onclick="showSection('doctors')" style="cursor: pointer;">
+                        <i class='bx bxs-face-mask'></i>
+                        <span class="text">
+                            <h3 id="cnt-doctors">0</h3>
+                            <p>Doctors</p>
+                        </span>
+                    </li>
+                </ul>
+
+                <div class="table-data">
+                    <div class="order">
+                        <div class="head">
+                            <h3>Recent Activity</h3>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-appts-body">
+                                <!-- JS Injected -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctors Section -->
+            <div id="doctors-section" class="admin-section" style="display: none;">
+                <div class="head-title">
+                    <div class="left">
+                        <h1>Manage Doctors</h1>
+                        <button class="btn-download" onclick="openAddDoctorModal()">
+                            <i class='bx bxs-plus-circle'></i>
+                            <span class="text">Add New Doctor</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-data">
+                    <div class="order">
+                        <div class="head">
+                            <h3>Registered Doctors</h3>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Room</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctors-list-body">
+                                <!-- JS Injected -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Patients Section -->
+            <div id="patients-section" class="admin-section" style="display: none;">
+                <div class="head-title">
+                    <div class="left">
+                        <h1>Patient Records</h1>
+                    </div>
+                </div>
+
+                <div class="table-data">
+                    <div class="order">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Age</th>
+                                    <th>Mobile</th>
+                                    <th>Joined</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patients-list-body">
+                                <!-- JS Injected -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appointments Section Restored -->
+            <div id="appointments-section" class="admin-section" style="display: none;">
+                <div class="head-title">
+                    <div class="left">
+                        <h1>All Appointments</h1>
+                    </div>
+                </div>
+
+                <div class="table-data">
+                    <div class="order">
+                        <div id="appointments-container">
+                            <!-- JS Injected Day-wise Tables -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <!-- MAIN -->
+    </section>
+    <!-- Content -->
+
+    <!-- ADMIN LOGIN OVERLAY (Standard Style) -->
+    <div id="admin-login-overlay" style="width: 100%; display: flex; justify-content: center; align-items: center;">
+        <div class="login-container"
+            style="max-width: 400px; width: 90%; margin: 0 auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--primary-blue);">PATIL HOSPITAL</div>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Admin Portal Access</p>
+            </div>
+
+            <form onsubmit="handleAdminLogin(event)">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Username</label>
+                    <input type="text" id="admin-username" required placeholder="Enter username"
+                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                </div>
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Password</label>
+                    <input type="password" id="admin-password" required placeholder="Enter password"
+                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                </div>
+                <button type="submit" class="btn-primary"
+                    style="width: 100%; padding: 12px; background: var(--primary-blue); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                    Login Securely
+                </button>
+            </form>
+
+            <div style="margin-top: 25px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+                <a href="index.html"
+                    style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class='bx bx-left-arrow-alt'></i> Back to Patient Portal
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js?v=34"></script>
+</body>
+
+</html>

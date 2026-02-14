@@ -34,13 +34,22 @@
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
+
+        body.not-logged-in #content {
+            display: none !important;
+        }
+
+        .scroll-y {
+            height: 100vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 
 <body>
 
     <!-- LOGIN SCREEN -->
-    <div id="login-screen">
+    <div id="login-screen" class="scroll-y">
         <div class="login-container">
             <h2 style="text-align:center; color:var(--primary-blue); margin-bottom:20px;">Doctor Login</h2>
             <div id="debug-status"
@@ -69,7 +78,7 @@
     </div>
 
     <!-- DASHBOARD SCREEN -->
-    <div id="dashboard-screen" class="hidden">
+    <div id="dashboard-screen" class="scroll-y hidden">
         <!-- NAV -->
         <nav class="sticky-nav" style="background: #2c3e50; color:white;">
             <div class="nav-brand">
@@ -99,6 +108,25 @@
                     </select>
                     <button class="btn-primary" style="margin-top:10px; width:100%;" onclick="updateStatus()">Update
                         Status</button>
+                </div>
+
+                <!-- Today's Stats -->
+                <div class="control-card">
+                    <h4>Today's Overview</h4>
+                    <div style="display:flex; justify-content:space-between; margin-top:15px; text-align:center;">
+                        <div>
+                            <h3 id="stat-today-total" style="font-size:1.5rem; color:var(--primary-blue);">0</h3>
+                            <span style="font-size:0.8rem; color:#666;">Total</span>
+                        </div>
+                        <div>
+                            <h3 id="stat-today-completed" style="font-size:1.5rem; color:green;">0</h3>
+                            <span style="font-size:0.8rem; color:#666;">Done</span>
+                        </div>
+                        <div>
+                            <h3 id="stat-today-pending" style="font-size:1.5rem; color:orange;">0</h3>
+                            <span style="font-size:0.8rem; color:#666;">Pending</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Queue Control -->
@@ -396,7 +424,7 @@
             document.getElementById('ctrl-queue-current').value = user.queue_current || 0;
             document.getElementById('ctrl-queue-total').value = user.queue_total || 0;
 
-            loadAppointments();
+            loadAppointments('today');
         }
 
         // Removed duplicate logout function
@@ -415,12 +443,26 @@
             // Filter
             // Note: appointments table doesn't have doctor_id yet, only dept. 
             // Matching by Dept
-            let myApts = allApts.filter(a => a.dept === currentDoc.department);
+            // Filter by Dept
+            const deptApts = allApts.filter(a => a.dept === currentDoc.department);
 
-            // Filter by Date (Today)
+            // --- UPDATE TODAY'S STATS ---
+            // Fix: Store date format consistent with script.js (locale dependent)
+            // Ideally should use ISO, but for now match existing data
+            const today = new Date().toLocaleDateString();
+            const todaysApts = deptApts.filter(a => a.date === today);
+
+            if (document.getElementById('stat-today-total')) {
+                document.getElementById('stat-today-total').textContent = todaysApts.length;
+                document.getElementById('stat-today-completed').textContent = todaysApts.filter(a => a.status === 'Completed').length;
+                // Pending includes Scheduled and Confirmed
+                document.getElementById('stat-today-pending').textContent = todaysApts.filter(a => ['Scheduled', 'Confirmed'].includes(a.status)).length;
+            }
+
+            // --- VIEW FILTERING ---
+            let myApts = deptApts;
             if (filter === 'today') {
-                const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-                myApts = myApts.filter(a => a.date === today);
+                myApts = todaysApts;
             }
 
             const list = document.getElementById('doc-apt-list');
@@ -431,12 +473,26 @@
                 tr.style.borderBottom = '1px solid #eee';
                 let actionBtn = '';
 
+                // Status Logic
+                let displayStatus = apt.status;
+                let statusStyle = '';
+
+                if (apt.status === 'Scheduled') {
+                    displayStatus = 'Pending';
+                    statusStyle = 'color:orange; font-weight:600;';
+                } else if (apt.status === 'Confirmed') {
+                    statusStyle = 'color:var(--primary-blue); font-weight:600;';
+                } else if (apt.status === 'Completed') {
+                    statusStyle = 'color:green; font-weight:600;';
+                }
+
                 if (apt.status === 'Completed') {
                     actionBtn = `<span style="color:green; font-weight:bold; margin-right:10px;">Completed</span> 
                                   <button class="nav-btn" style="padding:2px 5px; font-size:0.75rem; color:#dc3545;" onclick="deleteAppointment(${apt.id})">Remove</button>`;
                 } else if (apt.status === 'Confirmed') {
                     actionBtn = `<span style="color:var(--primary-blue); font-weight:bold; margin-right:5px;">Confirmed</span>
-                                  <button class="btn-primary" style="padding:5px 15px; font-size:0.8rem;" onclick="openReportModal(${apt.id}, '${apt.patient_name || 'Walk-in Patient'}')">Write Report</button>`;
+                                  <button class="btn-primary" style="padding:5px 15px; font-size:0.8rem;" onclick="openReportModal(${apt.id}, '${apt.patient_name || 'Walk-in Patient'}')">Write Report</button>
+                                  <button class="nav-btn" style="padding:5px 10px; font-size:0.8rem; color:#dc3545; margin-left:5px;" onclick="deleteAppointment(${apt.id})">✕ Remove</button>`;
                 } else {
                     // Scheduled / Pending
                     actionBtn = `<button class="btn-primary" style="padding:5px 10px; font-size:0.8rem; background:var(--accent-green); margin-right:5px;" onclick="confirmAppointment(${apt.id})">✅ Accept Request</button>
@@ -453,11 +509,29 @@
                         <div style="font-size:0.85rem; color:#666;">Age: ${apt.patient_age || '--'}</div>
                     </td>
                     <td style="padding:15px;">${apt.date}</td>
-                    <td style="padding:15px;">${apt.status}</td>
+                    <td style="padding:15px;"><span style="${statusStyle}">${displayStatus}</span></td>
                     <td style="padding:15px;">${actionBtn}</td>
                 `;
                 list.appendChild(tr);
             });
+
+            // Update Filter Buttons UI
+            const btnToday = document.querySelector("button[onclick=\"loadAppointments('today')\"]");
+            const btnAll = document.querySelector("button[onclick=\"loadAppointments('all')\"]");
+
+            if (btnToday && btnAll) {
+                if (filter === 'today') {
+                    btnToday.style.background = 'var(--accent-green)';
+                    btnToday.style.color = 'white';
+                    btnAll.style.background = 'white';
+                    btnAll.style.color = '#333';
+                } else {
+                    btnToday.style.background = 'white';
+                    btnToday.style.color = '#333';
+                    btnAll.style.background = 'var(--accent-green)';
+                    btnAll.style.color = 'white';
+                }
+            }
         }
 
         async function deleteAppointment(id) {
@@ -553,6 +627,23 @@
             // Fetch existing report if any to prefill? Maybe later.
             document.getElementById('report-modal').classList.remove('hidden');
         };
+
+        async function confirmAppointment(id) {
+            try {
+                const res = await fetch(`${API_URL}/appointments/${id}/confirm`, {
+                    method: 'POST'
+                });
+                if (res.ok) {
+                    showToast('Appointment Confirmed', 'success');
+                    loadAppointments('today'); // Refresh list
+                } else {
+                    showToast('Failed to confirm', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network Error', 'error');
+            }
+        }
 
         async function submitDoctorReport(e) {
             e.preventDefault();

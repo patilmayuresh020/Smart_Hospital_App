@@ -1,8 +1,21 @@
+# Python
 __pycache__/
-*.pyc
-hospital.db
-backend/hospital.db
-uploads/
-*.bat
-SHARE_LINK.txt
-deploy_package/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

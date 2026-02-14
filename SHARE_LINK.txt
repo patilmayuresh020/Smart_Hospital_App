@@ -1,0 +1,8 @@
+Here is the link to share with your friends (They must be on the same Wi-Fi):
+
+http://10.254.183.143:5000
+
+Steps:
+1. Make sure your server is running (Double click run_project.bat).
+2. Send this link to your friends on WhatsApp/Email.
+3. They can open it on their phone or laptop!
